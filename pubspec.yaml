@@ -1,0 +1,88 @@
+name: serene_ai
+description: "SERENE AI — Africa's AI-powered preventive mental wellness platform"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State Management
+  flutter_riverpod: ^2.5.1
+  riverpod_annotation: ^2.3.5
+
+  # Navigation
+  go_router: ^14.2.0
+
+  # Local Storage (offline-first)
+  hive_flutter: ^1.1.0
+  shared_preferences: ^2.2.3
+
+  # AI
+  google_generative_ai: ^0.4.6
+
+  # Animations
+  flutter_animate: ^4.5.0
+  lottie: ^3.1.2
+
+  # Charts
+  fl_chart: ^0.69.0
+
+  # Voice / TTS
+  flutter_tts: ^4.2.0
+  speech_to_text: ^7.0.0
+
+  # Audio
+  audioplayers: ^6.0.0
+
+  # Fonts
+  google_fonts: ^6.2.1
+
+  # Icons
+  flutter_svg: ^2.0.10+1
+  cupertino_icons: ^1.0.8
+
+  # Utilities
+  intl: ^0.19.0
+  uuid: ^4.4.2
+  path_provider: ^2.1.4
+  flutter_dotenv: ^5.2.1
+  url_launcher: ^6.3.0
+  percent_indicator: ^4.2.3
+  shimmer: ^3.0.0
+  cached_network_image: ^3.4.1
+  image_picker: ^1.1.2
+  permission_handler: ^11.3.1
+  vibration: ^2.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/animations/
+    - assets/audio/
+    - assets/fonts/
+    - .env
+
+  fonts:
+    - family: Outfit
+      fonts:
+        - asset: assets/fonts/Outfit-Regular.ttf
+        - asset: assets/fonts/Outfit-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Outfit-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Outfit-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Outfit-ExtraBold.ttf
+          weight: 800
