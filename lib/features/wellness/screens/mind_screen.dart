@@ -229,7 +229,7 @@ class SleepScreen extends StatelessWidget {
           title: 'Audio for Sleep',
           items: [
             _WellnessItem('Rain Sounds', '🌧️', '∞', 'Soothing natural rain ambience'),
-            _WellnessItem('Guided Sleep Meditation', '🌊', '20 min', 'Drift off with SERO\'s voice'),
+            _WellnessItem('Guided Sleep Meditation', '🌊', '20 min', 'Drift off with Letena\'s voice'),
             _WellnessItem('White Noise', '〰️', '∞', 'Mask distracting sounds'),
           ],
         ),

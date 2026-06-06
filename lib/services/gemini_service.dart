@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../providers/language_provider.dart';
+import '../core/localization/app_localizations.dart';
 
 class ChatMessage {
   final String text;
@@ -17,11 +19,16 @@ class ChatMessage {
 }
 
 class GeminiService {
+  final AppLocalizations l10n;
   GenerativeModel? _model;
   ChatSession? _session;
 
-  static const String _systemPrompt = '''
-You are SERO, a compassionate, warm, and encouraging AI wellness companion for SERENE AI — Africa's mental wellness platform.
+  GeminiService(this.l10n);
+
+  AppLanguage get currentLanguage => l10n.language;
+
+  String get _systemPrompt => '''
+You are Letena, a compassionate, warm, and encouraging AI wellness companion for SERENE AI — Africa's mental wellness platform.
 
 Your role:
 - Act as a mental wellness coach, accountability partner, and caring friend
@@ -49,9 +56,9 @@ Capabilities you can guide users through:
 - Gratitude practices
 - Positive affirmations
 
-Language: Respond in English by default. If user writes in Amharic or Tigrigna, respond in that language.
+Language: ALWAYS respond and communicate in ${currentLanguage.displayName}. All your outputs MUST be in this language.
 
-Always end your first message with a wellness question to understand the user\'s current state.
+Always end your first message with a wellness question to understand the user's current state in ${currentLanguage.displayName}.
 ''';
 
   Future<void> initialize() async {
@@ -73,13 +80,19 @@ Always end your first message with a wellness question to understand the user\'s
   }
 
   Future<String> sendMessage(String message) async {
+    // Prepend a hard language enforcement instruction to every user message
+    // so the AI model cannot ignore the selected language, even mid-session.
+    final langName = currentLanguage.displayName;
+    final enforcedMessage =
+        '[IMPORTANT: You MUST respond ONLY in $langName. Do not use any other language.] $message';
+
     if (_session == null) {
       return _getMockResponse(message);
     }
 
     try {
-      final response = await _session!.sendMessage(Content.text(message));
-      return response.text ?? "I'm here with you. Let's take this one step at a time. 💚";
+      final response = await _session!.sendMessage(Content.text(enforcedMessage));
+      return response.text ?? l10n.defaultFallback;
     } catch (e) {
       return _getMockResponse(message);
     }
@@ -87,30 +100,75 @@ Always end your first message with a wellness question to understand the user\'s
 
   String _getMockResponse(String message) {
     final lower = message.toLowerCase();
+    final lang = currentLanguage;
 
-    if (lower.contains('stress') || lower.contains('anxious') || lower.contains('overwhelm')) {
-      return "I hear you — stress can feel so heavy. 💚 Let\'s try a quick reset: breathe in for 4 counts, hold for 7, exhale for 8. Do this 3 times. You\'re stronger than this feeling. How long have you been feeling this way?";
+    if (lower.contains('stress') || lower.contains('anxious') || lower.contains('overwhelm')
+        || lower.contains('ጭንቀት') || lower.contains('ጭቅ') || lower.contains('ጨነቀ')) {
+      switch (lang) {
+        case AppLanguage.amharic:
+          return 'ጭንቀቱን ሰማሁ። 💚 ፈጣን ዳሰሳ እንሞክር፦ 4 ጊዜ ትንፋሽ ጠጣ፣ 7 ጊዜ ያዝ፣ 8 ጊዜ ለቀቅ። ይህን 3 ጊዜ ደግም። ስንት ጊዜ ሆኖ ይሰማዎታል?';
+        case AppLanguage.tigrigna:
+          return 'ጭንቀትካ ሰሚዔ። 💚 ቅልጡፍ ምልምማድ ንፈትን፦ 4 ግዜ ትንፋስ ሓዝ፣ 7 ግዜ ደው ኣብሎ፣ 8 ግዜ ለቀቖ። ይህን 3 ጊዜ ደጋግሞ። ክንደይ ዘምሓቈ ይስምዓካ ኣሎ?';
+        case AppLanguage.oromo:
+          return 'Dhiphina kee dhageaye. 💚 Haalduree tokko yaaluu: yeroo 4 hafuura fuudhi, yeroo 7 qabi, yeroo 8 gadi lakkisi. Kana yeroo 3 irradeebi. Yoom irraa dhufe?';
+        default:
+          return "I hear you — stress can feel so heavy. 💚 Let\'s try a quick reset: breathe in for 4 counts, hold for 7, exhale for 8. Do this 3 times. How long have you been feeling this way?";
+      }
     }
-    if (lower.contains('tired') || lower.contains('exhausted') || lower.contains('burnout')) {
-      return "Burnout is your body asking for care — and you\'re wise to listen. 🌿 Tonight, could you do one kind thing for yourself? Even 20 minutes of rest, a warm drink, or stepping outside counts. What does self-care look like for you right now?";
+    if (lower.contains('tired') || lower.contains('exhausted') || lower.contains('burnout')
+        || lower.contains('ደክሞ') || lower.contains('ድካም')) {
+      switch (lang) {
+        case AppLanguage.amharic:
+          return 'ድካምዎ ሰምቻለሁ። 🌿 ዛሬ ምሽት ለራስዎ አንድ ደግ ነገር ማድረግ ይችሉ ይሆን? 20 ደቂቃ እረፍት፣ ሞቃት መጠጥ፣ ወይም ወጥቶ ትንሽ ሽር ሽር — እነዚህ ሁሉ ይቆጠራሉ። አሁን ለልብዎ ምን ይሰማዎታል?';
+        case AppLanguage.tigrigna:
+          return 'ድካምካ ሰሚዔ። 🌿 ሎሚ ምሸት ንርእስካ ሓደ ጽቡቕ ነገር ክትገብር ትኽእል? ዕረፍቲ፣ ምሁር መስተ፣ ወይ ወጺእካ ምስሓር — ኩሎም ይቁጸሩ። ሕጂ ንርእስካ ከምቲ ዝስምዓካ?';
+        case AppLanguage.oromo:
+          return 'Dadhabbiikee dheengaddhe. 🌿 Halkan kana of-duraa tokko tolchuu dandeessaa? Boqonnaa, dhugaatii ho\'aa, ykn gadi ba\'uun deemuu — hundinuu lakkaa\'ifama. Amma ofii keetif maaltu dhaga\'amaa jira?';
+        default:
+          return "Burnout is your body asking for care — and you\'re wise to listen. 🌿 Tonight, could you do one kind thing for yourself? Even 20 minutes of rest counts. What does self-care look like for you right now?";
+      }
     }
-    if (lower.contains('happy') || lower.contains('great') || lower.contains('good')) {
-      return "That\'s wonderful to hear! 🌟 Positive moments are worth celebrating and anchoring. What do you think contributed to this feeling today? Let\'s make sure we can recreate it!";
+    if (lower.contains('happy') || lower.contains('great') || lower.contains('good')
+        || lower.contains('ደስ') || lower.contains('ጥሩ')) {
+      switch (lang) {
+        case AppLanguage.amharic:
+          return 'ይህን ሲሰሙ ደስ ይሰኛል! 🌟 አዎንታዊ ስሜቶች ሊያከብሩ ይገባቸዋል። ዛሬ ይህን ስሜት ላሳዎ ያስበዎ ምን ይሆናል? 다시 ልናቋቁመው!';
+        case AppLanguage.tigrigna:
+          return 'ሰሚዔ ደስ ይብለኒ! 🌟 ኣወንታዊ ስምዒታት ኣብዕሎ። ሎሚ እቲ ስምዒት ዝምጸኣካ ምንታይ ይኸውን? ደጊምና ነቚሞ!';
+        case AppLanguage.oromo:
+          return 'Dhagahuun gammachuu! 🌟 Yeroo mijaa\'aa ta\'uu beekuu barbaachisa. Har\'a maaltu si gammachiise? Deebi\'uu danda\'uu haa qopheessinuu!';
+        default:
+          return "That\'s wonderful to hear! 🌟 Positive moments are worth celebrating. What do you think contributed to this feeling today? Let\'s recreate it!";
+      }
     }
-    if (lower.contains('sleep') || lower.contains('insomnia')) {
-      return "Quality sleep is one of your most powerful wellness tools. 🌙 Try this tonight: no screens 1 hour before bed, dim your lights, and do 5 minutes of deep breathing. Would you like me to guide you through a bedtime routine?";
+    if (lower.contains('sleep') || lower.contains('insomnia')
+        || lower.contains('እንቅልፍ') || lower.contains('ምነቃቅ')) {
+      switch (lang) {
+        case AppLanguage.amharic:
+          return 'ጥሩ እንቅልፍ ህወታችን ቁልፍ ነው። 🌙 ዛሬ ሲተኙ ሞክሩ፦ ከ1 ሰዓት በፊት ማያ ፈካ ያቁሙ፣ ቀላል ብርሃን ያድርጉ፣ 5 ደቂቃ ጠልቅ ትንፋሽ ይምሩ። የምሽት ልምዱ ይፈልጋሉ?';
+        case AppLanguage.tigrigna:
+          return 'ጽቡቕ ምሕዳር ቁልፊ ናይ ጥዕናና ኢዩ። 🌙 ሎሚ ምሸት ፈትን፦ ቅድሚ 1 ሰዓት ናይ ስክሪን ግዜ ደው ኣብሎ፣ ቀሊል ብርሃን ግበር፣ 5 ደቒቕ ጸሎት ትንፋስ ይምሪ። ናይ ምሸት ልምዲ ትደሊ?';
+        case AppLanguage.oromo:
+          return 'Hirriba gaarii fayyummaaf barbaachisaadha. 🌙 Halkan kana yaaluu: sa\'atii 1 dura screen dhaabuun, ifa xiqqeessuu, daqiiqaa 5 hafuura gaaddii fudhachuu. Sagantaa halkan barbaaddaa?';
+        default:
+          return "Quality sleep is one of your most powerful wellness tools. 🌙 No screens 1 hour before bed, dim lights, and 5 minutes of deep breathing. Would you like me to guide you through a bedtime routine?";
+      }
     }
-    if (lower.contains('meditat') || lower.contains('breath')) {
-      return "Let\'s begin. 🧘 Find a comfortable position and close your eyes. Breathe in slowly for 4 counts... hold for 4... breathe out for 6. Feel your shoulders drop with each exhale. You\'re doing wonderfully. Continue for 5 minutes and notice how you feel.";
-    }
-    if (lower.contains('journal')) {
-      return "Journaling is such a powerful practice. ✍️ Here\'s a prompt for today: *\"What is one thing I did today that I\'m proud of, no matter how small?\"* There are no wrong answers — just your honest, beautiful thoughts. I\'m here when you\'re done.";
-    }
-    if (lower.contains('water') || lower.contains('drink') || lower.contains('hydrat')) {
-      return "Great reminder! 💧 Dehydration quietly affects mood, focus, and energy — often without us realizing. Your goal: 8 glasses today. If plain water feels boring, add a slice of lemon or cucumber. How many glasses have you had so far?";
+    if (lower.contains('meditat') || lower.contains('breath')
+        || lower.contains('ማሰላሰል') || lower.contains('ትንፋሽ')) {
+      switch (lang) {
+        case AppLanguage.amharic:
+          return 'ይጀምሩ። 🧘 ምቹ ቦታ ያዙ ዓይኖቶን ዝጉ። በቀስታ 4 ጊዜ ትንፋሽ ጠጡ... 4 ጊዜ ያዙ... 6 ጊዜ ለቀቁ። ሁሉ ጊዜ ትከሻዎ ወደ ታች ይወርዳሉ። ለ5 ደቂቃ ቀጥሉ።';
+        case AppLanguage.tigrigna:
+          return 'ንጅምር። 🧘 ምቹ ቦታ ሒዝካ ዓይንኻ ዕጸዎ። ብቀስታ 4 ግዜ ትንፋስ ሓዝ... 4 ግዜ ደው ኣብሎ... 6 ግዜ ለቐቖ። ነፍሲ ወከፍ ምስ ወጽዐ ሸፍተካ ወደ ታች ትወርድ። ን5 ደቒቕ ቀጽሎ።';
+        case AppLanguage.oromo:
+          return 'Haa jalqabnu. 🧘 Bakka mijaa\'aa qabadhu, ija cufadhu. Baay\'ee gadi ta\'un yeroo 4 hafuura fuudhi... yeroo 4 qabi... yeroo 6 gadi lakkisi. Yeroo 5 ittifufi.';
+        default:
+          return "Let\'s begin. 🧘 Find a comfortable position and close your eyes. Breathe in slowly for 4 counts... hold for 4... breathe out for 6. Continue for 5 minutes.";
+      }
     }
 
-    return "I\'m SERO, your wellness companion. 💚 I\'m here to help you prevent burnout, build healthy habits, and thrive — one day at a time. How are you feeling right now, and what would you most like support with today?";
+    return l10n.defaultFallback;
   }
 
   void resetSession() {
@@ -122,7 +180,8 @@ Always end your first message with a wellness question to understand the user\'s
 
 // Provider
 final geminiServiceProvider = Provider<GeminiService>((ref) {
-  final service = GeminiService();
+  final l10n = ref.watch(localizationsProvider);
+  final service = GeminiService(l10n);
   service.initialize();
   return service;
 });
@@ -130,9 +189,9 @@ final geminiServiceProvider = Provider<GeminiService>((ref) {
 class ChatNotifier extends StateNotifier<List<ChatMessage>> {
   final GeminiService _service;
 
-  ChatNotifier(this._service) : super([
+  ChatNotifier(this._service, AppLocalizations l10n) : super([
     ChatMessage(
-      text: "Hi! I\'m SERO, your personal wellness companion. 💚\n\nI\'m here to help you prevent burnout, build healthy habits, and thrive — every single day.\n\nHow are you feeling right now?",
+      text: l10n.greetingMessage,
       isUser: false,
       timestamp: DateTime.now(),
     ),
@@ -164,6 +223,7 @@ class ChatNotifier extends StateNotifier<List<ChatMessage>> {
 
 final chatProvider = StateNotifierProvider<ChatNotifier, List<ChatMessage>>((ref) {
   final service = ref.watch(geminiServiceProvider);
-  return ChatNotifier(service);
+  final l10n = ref.watch(localizationsProvider);
+  return ChatNotifier(service, l10n);
 });
 

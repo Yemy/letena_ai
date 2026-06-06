@@ -13,7 +13,7 @@ class AppStrings {
   static const String welcomeTitle3 = 'Wellness is Better Together';
   static const String welcomeBody3 = 'Connect anonymously with communities that understand your journey.';
   static const String welcomeTitle4 = 'Progress, Not Perfection';
-  static const String welcomeBody4 = 'Earn XP, build streaks, and celebrate every small win with SERO by your side.';
+  static const String welcomeBody4 = 'Earn XP, build streaks, and celebrate every small win with Letena by your side.';
 
   // Mood
   static const String moodQuestion = 'How are you feeling right now?';

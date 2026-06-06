@@ -7,6 +7,7 @@ import '../../../core/constants/app_spacing.dart';
 import '../../../providers/user_provider.dart';
 import '../../../providers/mood_provider.dart';
 import '../../../models/badge_model.dart';
+import '../../../providers/language_provider.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -152,9 +153,9 @@ class ProfileScreen extends ConsumerWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('SERO — Your Companion', style: TextStyle(fontFamily: 'Outfit', fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white70)),
+                              const Text('Letena — Your Companion', style: TextStyle(fontFamily: 'Outfit', fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white70)),
                               Text('Stage ${user.seroEvolutionStage + 1} of 5', style: const TextStyle(fontFamily: 'Outfit', fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white)),
-                              Text('Keep earning XP to evolve SERO!', style: const TextStyle(fontFamily: 'Nunito', fontSize: 12, color: Colors.white70)),
+                              Text('Keep earning XP to evolve Letena!', style: const TextStyle(fontFamily: 'Nunito', fontSize: 12, color: Colors.white70)),
                             ],
                           ),
                         ),
@@ -215,6 +216,49 @@ class ProfileScreen extends ConsumerWidget {
                   _ProfileLink(icon: Icons.flag_rounded, label: 'My Challenges', onTap: () => context.push('/challenges')),
                   _ProfileLink(icon: Icons.menu_book_rounded, label: 'Journal History', onTap: () => context.push('/journal')),
                   _ProfileLink(icon: Icons.favorite_rounded, label: 'Emergency & SOS', color: AppColors.error, onTap: () => context.push('/emergency')),
+                  
+                  // Language Selector
+                  ListTile(
+                    onTap: () {
+                      showModalBottomSheet(
+                        context: context,
+                        backgroundColor: isDark ? AppColors.bgDark : Colors.white,
+                        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+                        builder: (ctx) => SafeArea(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: AppLanguage.values.map((lang) {
+                              return ListTile(
+                                title: Text(lang.displayName, style: TextStyle(fontFamily: 'Outfit', color: isDark ? Colors.white : AppColors.textPrimary)),
+                                trailing: ref.watch(languageProvider) == lang ? const Icon(Icons.check_circle, color: AppColors.primary) : null,
+                                onTap: () {
+                                  ref.read(languageProvider.notifier).setLanguage(lang);
+                                  Navigator.pop(ctx);
+                                },
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      );
+                    },
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 0),
+                    leading: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+                      child: const Icon(Icons.language_rounded, color: AppColors.primary, size: 20),
+                    ),
+                    title: Text('App Language', style: TextStyle(fontFamily: 'Outfit', fontSize: 15, fontWeight: FontWeight.w600, color: isDark ? Colors.white : AppColors.textPrimary)),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(ref.watch(languageProvider).displayName, style: const TextStyle(fontFamily: 'Nunito', color: AppColors.primary, fontWeight: FontWeight.bold)),
+                        const SizedBox(width: 8),
+                        const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: AppColors.textMuted),
+                      ],
+                    ),
+                  ),
+
                   _ProfileLink(icon: Icons.settings_rounded, label: 'Settings', onTap: () => context.push('/settings')),
 
                   const SizedBox(height: 100),

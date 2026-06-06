@@ -9,19 +9,22 @@ import '../../../providers/mood_provider.dart';
 import '../../../providers/quest_provider.dart';
 import '../../../models/quest_model.dart';
 import '../../../models/mood_model.dart';
+import '../../../providers/language_provider.dart';
+import '../../../core/localization/app_localizations.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
-  String _greeting() {
+  String _greeting(AppLocalizations l10n) {
     final hour = DateTime.now().hour;
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
+    if (hour < 12) return l10n.goodMorning;
+    if (hour < 17) return l10n.goodAfternoon;
+    return l10n.goodEvening;
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = ref.watch(localizationsProvider);
     final user = ref.watch(userProfileProvider);
     final quests = ref.watch(questProvider);
     final todaysMood = ref.watch(todaysMoodProvider);
@@ -55,7 +58,7 @@ class HomeScreen extends ConsumerWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    '${_greeting()}, ${user.name} 👋',
+                                    '${_greeting(l10n)}, ${user.name} 👋',
                                     style: const TextStyle(
                                       fontFamily: 'Nunito',
                                       fontSize: 14,
@@ -64,7 +67,7 @@ class HomeScreen extends ConsumerWidget {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    'You\'re a ${user.identity}',
+                                    '${l10n.youreA} ${user.identity}',
                                     style: const TextStyle(
                                       fontFamily: 'Outfit',
                                       fontSize: 20,
@@ -187,7 +190,7 @@ class HomeScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // SERO Widget
-                  _SeroWidget(stage: user.seroEvolutionStage)
+                  _SeroWidget(stage: user.seroEvolutionStage, l10n: l10n)
                       .animate()
                       .fadeIn(duration: 500.ms),
 
@@ -216,14 +219,14 @@ class HomeScreen extends ConsumerWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Daily Quests',
+                        l10n.dailyQuests,
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.w700,
                               color: isDark ? Colors.white : AppColors.textPrimary,
                             ),
                       ),
                       Text(
-                        '${quests.completedCount}/${quests.quests.length} done',
+                        '${quests.completedCount}/${quests.quests.length} ${l10n.doneWord}',
                         style: const TextStyle(
                           fontFamily: 'Outfit',
                           fontSize: 13,
@@ -276,7 +279,8 @@ class HomeScreen extends ConsumerWidget {
 // --- SERO Widget ---
 class _SeroWidget extends StatefulWidget {
   final int stage;
-  const _SeroWidget({required this.stage});
+  final AppLocalizations l10n;
+  const _SeroWidget({required this.stage, required this.l10n});
 
   @override
   State<_SeroWidget> createState() => _SeroWidgetState();
@@ -374,9 +378,9 @@ class _SeroWidgetState extends State<_SeroWidget> with SingleTickerProviderState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'SERO says...',
-                  style: TextStyle(
+                Text(
+                  widget.l10n.letenaSays,
+                  style: const TextStyle(
                     fontFamily: 'Outfit',
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -443,23 +447,23 @@ class _MoodCheckInPrompt extends ConsumerWidget {
           children: [
             const Text('😊', style: TextStyle(fontSize: 36)),
             const SizedBox(width: 16),
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'How are you feeling today?',
-                    style: TextStyle(
+                    ref.watch(localizationsProvider).howAreYouFeeling,
+                    style: const TextStyle(
                       fontFamily: 'Outfit',
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
                       color: Colors.white,
                     ),
                   ),
-                  SizedBox(height: 2),
+                  const SizedBox(height: 2),
                   Text(
-                    'Quick check-in — takes 30 seconds ⚡',
-                    style: TextStyle(
+                    ref.watch(localizationsProvider).quickCheckIn,
+                    style: const TextStyle(
                       fontFamily: 'Nunito',
                       fontSize: 13,
                       color: Color(0xCCFFFFFF),
@@ -776,10 +780,10 @@ class _QuickActionsGrid extends StatelessWidget {
 class _InspirationCard extends StatelessWidget {
   final _quotes = [
     ('"Every day is a chance to be healthier than yesterday."', '— Serene Wisdom'),
-    ('"You don\'t need to be perfect. You just need to keep going."', '— SERO'),
+    ('"You don\'t need to be perfect. You just need to keep going."', '— Letena'),
     ('"Small habits, done consistently, create extraordinary lives."', '— Atomic Habits'),
     ('"Rest is not laziness. It is an act of wisdom."', '— Serene Wisdom'),
-    ('"Your mental health is a priority. You matter."', '— SERO'),
+    ('"Your mental health is a priority. You matter."', '— Letena'),
   ];
 
   @override

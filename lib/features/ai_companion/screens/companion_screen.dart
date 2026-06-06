@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'package:flutter_tts/flutter_tts.dart';
+import '../../../providers/language_provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_spacing.dart';
 import '../../../services/gemini_service.dart';
@@ -17,8 +20,117 @@ class _CompanionScreenState extends ConsumerState<CompanionScreen> {
   final _scrollController = ScrollController();
   final _focusNode = FocusNode();
 
+  final stt.SpeechToText _speech = stt.SpeechToText();
+  final FlutterTts _flutterTts = FlutterTts();
+  bool _isListening = false;
+  bool _sttAvailable = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initSpeech();
+  }
+
+  void _initSpeech() async {
+    _sttAvailable = await _speech.initialize(
+      onStatus: (status) {
+        if (status == 'done' || status == 'notListening') {
+          if (mounted) setState(() => _isListening = false);
+        }
+      },
+      onError: (errorNotification) {
+        if (mounted) {
+          setState(() => _isListening = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Voice Input Error: ${errorNotification.errorMsg}. Ensure Google Voice Typing supports this language.'),
+              backgroundColor: AppColors.error,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      },
+    );
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _speakMessage(String text) async {
+    final lang = ref.read(languageProvider);
+    String localeId;
+    switch (lang) {
+      case AppLanguage.amharic: localeId = 'am-ET'; break;
+      case AppLanguage.tigrigna: localeId = 'ti-ET'; break;
+      case AppLanguage.oromo: localeId = 'om-ET'; break;
+      default: localeId = 'en-US';
+    }
+    
+    await _flutterTts.stop();
+
+    try {
+      final isAvailable = await _flutterTts.isLanguageAvailable(localeId);
+      if (isAvailable != true) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Text-to-Speech pack for $localeId not installed natively. Please download it in your device settings.'),
+              backgroundColor: AppColors.warning,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+        return;
+      }
+
+      await _flutterTts.setLanguage(localeId);
+      final cleanText = text.replaceAll(RegExp(r'\*|\#|_'), '');
+      await _flutterTts.speak(cleanText);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Voice Engine Error: Unable to play audio.'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
+  }
+
+  void _listen() async {
+    if (!_sttAvailable) {
+      _initSpeech();
+      return;
+    }
+    
+    if (_isListening) {
+      setState(() => _isListening = false);
+      _speech.stop();
+    } else {
+      final lang = ref.read(languageProvider);
+      String localeId;
+      switch (lang) {
+        case AppLanguage.amharic: localeId = 'am_ET'; break;
+        case AppLanguage.tigrigna: localeId = 'ti_ET'; break;
+        case AppLanguage.oromo: localeId = 'om_ET'; break;
+        default: localeId = 'en_US';
+      }
+
+      setState(() => _isListening = true);
+      _speech.listen(
+        onResult: (val) {
+          setState(() {
+            _textController.text = val.recognizedWords;
+          });
+        },
+        localeId: localeId.replaceAll('_', '-'), // Ensure format consistency
+      );
+    }
+  }
+
   @override
   void dispose() {
+    _speech.stop();
+    _flutterTts.stop();
     _textController.dispose();
     _scrollController.dispose();
     _focusNode.dispose();
@@ -45,6 +157,19 @@ class _CompanionScreenState extends ConsumerState<CompanionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = ref.watch(localizationsProvider);
+
+    // Listen for new messages to trigger TTS
+    ref.listen<List<ChatMessage>>(chatProvider, (previous, next) {
+      if (previous != null && next.isNotEmpty && previous.isNotEmpty) {
+        final lastNext = next.last;
+        final lastPrev = previous.last;
+        if (!lastNext.isUser && !lastNext.isLoading && lastPrev.isLoading) {
+          _speakMessage(lastNext.text);
+        }
+      }
+    });
+
     final messages = ref.watch(chatProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -68,11 +193,11 @@ class _CompanionScreenState extends ConsumerState<CompanionScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'SERO',
+                  'Letena',
                   style: TextStyle(fontFamily: 'Outfit', fontSize: 16, fontWeight: FontWeight.w700),
                 ),
                 Text(
-                  'Your Wellness Companion',
+                  l10n.companionRole,
                   style: TextStyle(
                     fontFamily: 'Nunito',
                     fontSize: 11,
@@ -107,8 +232,8 @@ class _CompanionScreenState extends ConsumerState<CompanionScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
               children: [
-                'I\'m stressed 😔',
-                'Guide meditation 🧘',
+                l10n.imStressed,
+                l10n.guideMeditation,
                 'Breathing exercise',
                 'Journal prompt ✍️',
                 'Sleep tips 🌙',
@@ -178,15 +303,22 @@ class _CompanionScreenState extends ConsumerState<CompanionScreen> {
             child: Row(
               children: [
                 // Voice button
-                Container(
-                  width: 44,
-                  height: 44,
-                  margin: const EdgeInsets.only(right: 8),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
-                    shape: BoxShape.circle,
+                GestureDetector(
+                  onTap: _listen,
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    margin: const EdgeInsets.only(right: 8),
+                    decoration: BoxDecoration(
+                      color: _isListening ? Colors.red.withOpacity(0.1) : AppColors.primary.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      _isListening ? Icons.mic_off_rounded : Icons.mic_rounded, 
+                      color: _isListening ? Colors.red : AppColors.primary, 
+                      size: 22
+                    ),
                   ),
-                  child: const Icon(Icons.mic_rounded, color: AppColors.primary, size: 22),
                 ),
 
                 // Text input
@@ -199,7 +331,7 @@ class _CompanionScreenState extends ConsumerState<CompanionScreen> {
                     textInputAction: TextInputAction.send,
                     onSubmitted: (_) => _send(),
                     decoration: InputDecoration(
-                      hintText: 'Talk to SERO...',
+                      hintText: l10n.talkToCompanion,
                       hintStyle: const TextStyle(fontFamily: 'Nunito', color: AppColors.textMuted),
                       filled: true,
                       fillColor: isDark ? AppColors.cardDark : const Color(0xFFF0F5F3),

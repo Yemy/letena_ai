@@ -1,45 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../providers/language_provider.dart';
 
-class WelcomeScreen extends StatefulWidget {
+class WelcomeScreen extends ConsumerStatefulWidget {
   const WelcomeScreen({super.key});
 
   @override
-  State<WelcomeScreen> createState() => _WelcomeScreenState();
+  ConsumerState<WelcomeScreen> createState() => _WelcomeScreenState();
 }
 
-class _WelcomeScreenState extends State<WelcomeScreen> {
+class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
   final PageController _controller = PageController();
   int _currentPage = 0;
-
-  final _pages = [
-    (
-      '🌟',
-      'Your Wellness Journey Starts Here',
-      'Build lifelong habits, prevent burnout, and thrive — one day at a time.',
-      AppColors.primaryGradient,
-    ),
-    (
-      '🤖',
-      'AI That Truly Gets You',
-      'Your AI companion SERO learns your patterns and guides you compassionately, in your language.',
-      LinearGradient(colors: [Color(0xFF6C3483), Color(0xFF9B59B6)], begin: Alignment.topLeft, end: Alignment.bottomRight),
-    ),
-    (
-      '🌍',
-      'Wellness is Better Together',
-      'Connect anonymously with communities that understand your unique journey as an African.',
-      LinearGradient(colors: [Color(0xFF1E8449), Color(0xFF27AE60)], begin: Alignment.topLeft, end: Alignment.bottomRight),
-    ),
-    (
-      '🏆',
-      'Progress, Not Perfection',
-      'Earn XP, build streaks, and celebrate every small win with SERO by your side.',
-      AppColors.amberGradient,
-    ),
-  ];
 
   @override
   void dispose() {
@@ -49,6 +24,35 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = ref.watch(localizationsProvider);
+
+    final _pages = [
+      (
+        '🌟',
+        l10n.welcomeTitle1,
+        l10n.welcomeBody1,
+        AppColors.primaryGradient,
+      ),
+      (
+        '🤖',
+        l10n.welcomeTitle2,
+        l10n.welcomeBody2,
+        const LinearGradient(colors: [Color(0xFF6C3483), Color(0xFF9B59B6)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+      ),
+      (
+        '🌍',
+        l10n.welcomeTitle3,
+        l10n.welcomeBody3,
+        const LinearGradient(colors: [Color(0xFF1E8449), Color(0xFF27AE60)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+      ),
+      (
+        '🏆',
+        l10n.welcomeTitle4,
+        l10n.welcomeBody4,
+        AppColors.amberGradient,
+      ),
+    ];
+
     return Scaffold(
       body: Stack(
         children: [
@@ -152,7 +156,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                             ),
-                            child: const Text('Back'),
+                            child: Text(l10n.backButton),
                           ),
                         const Spacer(),
                         ElevatedButton(
@@ -173,7 +177,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                           ),
                           child: Text(
-                            _currentPage < _pages.length - 1 ? 'Next' : 'Get Started',
+                            _currentPage < _pages.length - 1 ? l10n.nextButton : l10n.getStartedButton,
                             style: const TextStyle(
                               fontFamily: 'Outfit',
                               fontWeight: FontWeight.w700,
